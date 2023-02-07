@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -13,10 +14,12 @@ class MapWidget extends StatefulWidget {
 
 class _MapWidgetState extends State<MapWidget> {
   Location location = new Location();
-  final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
-
   bool? _serviceEnabled;
   PermissionStatus? _permissionGranted;
+  LocationData? _location;
+
+
+  final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
   static const CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
     zoom: 14.4746,
@@ -43,11 +46,22 @@ class _MapWidgetState extends State<MapWidget> {
     if (_permissionGranted == PermissionStatus.denied) {
       _permissionGranted = await location.requestPermission();
       if (_permissionGranted != PermissionStatus.granted) {
-        return;
+        
       }
     }
-  }
 
+    marks.add(Marker(markerId: MarkerId("1"),position: LatLng(_kGooglePlex.target.latitude, _kGooglePlex.target.longitude)));
+    setState(() {});
+    final GoogleMapController controller =await _controller.future;
+    controller.animateCamera(CameraUpdate.newCameraPosition(_kLake));
+
+    location.onLocationChanged.listen((LocationData locationData) {
+      _location = locationData;
+      marks.add(Marker(markerId: MarkerId("${marks.length+1}"),position: LatLng(_kLake.target.latitude, _kLake.target.longitude)));
+
+    });
+  }
+  Set<Marker> marks = {};
   @override
   void initState() {
     super.initState();
@@ -60,6 +74,7 @@ class _MapWidgetState extends State<MapWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GoogleMap(
+        markers: marks,
         mapType: MapType.hybrid,
         initialCameraPosition: _kGooglePlex,
         onMapCreated: (GoogleMapController controller) {
@@ -73,7 +88,7 @@ class _MapWidgetState extends State<MapWidget> {
         label: const Text('Go To Location',style:TextStyle(
           fontSize: 21
         ),),
-        icon: const Icon(Icons.add_circle,size: 32),
+        icon: const Icon(Icons.arrow_upward_outlined,size: 32),
       ),
     );
   }
